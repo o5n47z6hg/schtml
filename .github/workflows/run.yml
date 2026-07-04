@@ -1,0 +1,44 @@
+name: Sky Miner Bot
+
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: '0 */5 * * *'
+
+jobs:
+  run-miner:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        bot_id: [1, 2, 3, 4, 5]
+      fail-fast: false
+    
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install Python dependencies
+        run: pip install selenium requests packaging
+
+      - name: Install Chrome & ChromeDriver
+        uses: browser-actions/setup-chrome@v1
+
+      - name: Fix chromedriver path
+        run: |
+          DRIVER_PATH=$(which chromedriver)
+          sed -i "s|/usr/local/bin/chromedriver|$DRIVER_PATH|g" main.py
+          echo "Chromedriver path: $DRIVER_PATH"
+
+      - name: Run bot
+        timeout-minutes: 340
+        env:
+          GITHUB_USERNAME: ${{ github.repository_owner }}
+          GITHUB_REPO: ${{ github.event.repository.name }}
+          BOT_LABEL: "BOT${{ matrix.bot_id }}"
+          DASHBOARD_URL: "http://152.42.206.165:3000"
+        run: python main.py
